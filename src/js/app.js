@@ -83,6 +83,7 @@ function play(list, start = 0) {
 }
 
 document.addEventListener("lyra:trackchange", () => {
+  state.currentCover = player.queue[player.qi]?.cover || null;
   if (state.view === "tracks" || state.view === "detail" || state.view === "favorites") render();
 });
 

@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lyra</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+
+    <aside id="sidebar">
+      <div class="brand">
+        <div class="brand-logo"><svg viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg></div>
+        <span>Lyra</span>
+      </div>
+      <nav id="nav">
+        <button class="nav-item active" data-view="home"><span class="ni-icon">🏠</span><span>Accueil</span></button>
+        <button class="nav-item" data-view="tracks"><span class="ni-icon">🎵</span><span>Titres</span></button>
+        <button class="nav-item" data-view="albums"><span class="ni-icon">💿</span><span>Albums</span></button>
+        <button class="nav-item" data-view="artists"><span class="ni-icon">🎤</span><span>Artistes</span></button>
+        <button class="nav-item" data-view="playlists"><span class="ni-icon">📝</span><span>Playlists</span></button>
+        <div class="nav-sep"></div>
+        <button class="nav-item" data-view="favorites"><span class="ni-icon">❤️</span><span>Favoris</span></button>
+        <button class="nav-item" data-view="recents"><span class="ni-icon">🕐</span><span>Récents</span></button>
+      </nav>
+      <div class="sb-bottom">
+        <button class="nav-item" id="btn-settings"><span class="ni-icon">⚙️</span><span>Paramètres</span></button>
+      </div>
+    </aside>
+
+    <main id="main">
+      <header id="topbar">
+        <div id="topbar-title">Accueil</div>
+        <input id="search" type="search" placeholder="Rechercher un titre, un artiste, un album…" spellcheck="false" />
+      </header>
+      <section id="view"></section>
+    </main>
+
+    <footer id="playerbar">
+      <div id="pb-track">
+        <img id="pb-cover" alt="" />
+        <div id="pb-meta">
+          <div id="pb-title">Rien à lire pour l'instant</div>
+          <div id="pb-artist"></div>
+        </div>
+        <button id="pb-like" class="icon-btn" title="Favori">♡</button>
+      </div>
+      <div id="pb-center">
+        <div id="pb-controls">
+          <button id="btn-shuffle" class="icon-btn small" title="Aléatoire">🔀</button>
+          <button id="btn-prev" class="icon-btn" title="Précédent">⏮</button>
+          <button id="btn-play" class="play-btn" title="Lecture / Pause"><span id="play-icon">▶</span></button>
+          <button id="btn-next" class="icon-btn" title="Suivant">⏭</button>
+          <button id="btn-repeat" class="icon-btn small" title="Répéter">🔁</button>
+        </div>
+        <div id="pb-seek">
+          <span id="pb-cur">0:00</span>
+          <div id="seek-wrap"><input id="seek" type="range" min="0" max="100" value="0" step="0.1" /></div>
+          <span id="pb-dur">0:00</span>
+        </div>
+      </div>
+      <div id="pb-right">
+        <button id="btn-eq" class="icon-btn" title="Égaliseur">🎚</button>
+        <button id="btn-vol" class="icon-btn" title="Volume">🔊</button>
+        <input id="volume" type="range" min="0" max="100" value="80" />
+        <button id="btn-expand" class="icon-btn" title="Plein écran">⤢</button>
+      </div>
+
+      <div id="eq-panel" class="popover hidden">
+        <div class="pop-head">Égaliseur <button id="eq-reset" class="text-btn">Réinitialiser</button></div>
+        <label class="eq-toggle"><input type="checkbox" id="eq-on" /> Activer</label>
+        <div id="eq-sliders"></div>
+      </div>
+    </footer>
+
+    <div id="nowplaying" class="hidden">
+      <div id="np-backdrop"></div>
+      <button id="np-close" class="icon-btn" title="Réduire">⤡</button>
+      <div id="np-content">
+        <div id="np-left">
+          <img id="np-cover" alt="" />
+          <div id="np-meta">
+            <div id="np-title"></div>
+            <div id="np-artist"></div>
+          </div>
+          <div id="np-controls">
+            <button id="np-like" class="icon-btn">♡</button>
+            <button id="np-prev" class="icon-btn">⏮</button>
+            <button id="np-play" class="play-btn big"><span id="np-play-icon">▶</span></button>
+            <button id="np-next" class="icon-btn">⏭</button>
+          </div>
+          <div id="np-seek">
+            <span id="np-cur">0:00</span>
+            <div id="np-seek-wrap"><input id="np-seek" type="range" min="0" max="100" value="0" step="0.1" /></div>
+            <span id="np-dur">0:00</span>
+          </div>
+        </div>
+        <div id="np-queue">
+          <div class="np-q-head">File d'attente</div>
+          <div id="np-queue-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="ctx-menu" class="hidden"></div>
+    <div id="toast"></div>
+  </div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

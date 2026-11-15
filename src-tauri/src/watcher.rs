@@ -11,7 +11,8 @@ pub fn spawn(state: std::sync::Arc<crate::AppState>) {
         let db = state.db.clone();
         let st = state.clone();
 
-        let (tx, rx) = std::sync::mpsc::channel();
+        let (tx, rx) =
+            std::sync::mpsc::channel::<notify::Result<notify::Event>>();
 
         let mut _keep_watcher: Option<notify::RecommendedWatcher> = None;
         let mut known_folders: Vec<String> = Vec::new();

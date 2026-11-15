@@ -62,6 +62,7 @@ fn main() {
             commands::set_setting,
             commands::set_theme,
             commands::app_data_dir,
+            commands::pick_folder,
         ])
         .run(tauri::generate_context!())
         .expect("erreur pendant l'exécution de Lyra");

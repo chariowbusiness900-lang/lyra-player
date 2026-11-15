@@ -57,6 +57,18 @@ Set-Content -Path lyra-pfx-base64.txt -Value $b64
 > Pour une signature reconnue par SmartScreen : Azure Trusted Signing (~10 $/mois)
 > ou certificat OV/EV (200–400 $/an).
 
+## Utiliser la Release
+
+Deux fichiers sont publiés pour chaque version :
+
+- `lyra.exe` : version portable, aucune installation (Windows 11 inclut WebView2).
+- `Lyra_1.0.0_x64-setup.exe` : installateur NSIS (menu Démarrer, désinstallateur).
+- `lyra-codesign.cer` : certificat public utilisé pour signer (voir ci-dessous).
+
+Pour que Windows reconnaisse l'éditeur du fichier signé, installez le certificat
+public : double-clic sur `lyra-codesign.cer` → « Installer le certificat » →
+« Autorités de certification racines de confiance ». À ne faire que si vous faites
+confiance au fichier téléchargé depuis cette Release.
 ## Roadmap
 
 Contrôles médias système (SMTC), paroles synchronisées (LRC), crossfade,

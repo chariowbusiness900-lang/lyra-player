@@ -1,3 +1,4 @@
+use lofty::file::{AudioFile, TaggedFileExt};
 use std::collections::HashSet;
 use std::fs;
 use std::hash::{Hash, Hasher};

@@ -12,11 +12,8 @@ pub fn spawn(state: std::sync::Arc<crate::AppState>) {
         let st = state.clone();
 
         let (tx, rx) = std::sync::mpsc::channel();
-        let mut watcher = match notify::recommended_watcher(tx) {
-            Ok(w) => w,
-            Err(_) => return,
-        };
 
+        let mut _keep_watcher: Option<notify::RecommendedWatcher> = None;
         let mut known_folders: Vec<String> = Vec::new();
         let mut dirty = false;
 
@@ -40,13 +37,14 @@ pub fn spawn(state: std::sync::Arc<crate::AppState>) {
                     // Dossiers ajoutés/retirés depuis l'UI → ré-arme les watches.
                     let current = db.lock().unwrap().list_folders();
                     if current != known_folders {
-                        watcher = match notify::recommended_watcher(tx.clone()) {
+                        let mut w = match notify::recommended_watcher(tx.clone()) {
                             Ok(w) => w,
                             Err(_) => return,
                         };
                         for f in &current {
-                            let _ = watcher.watch(Path::new(f), RecursiveMode::Recursive);
+                            let _ = w.watch(Path::new(f), RecursiveMode::Recursive);
                         }
+                        _keep_watcher = Some(w);
                         known_folders = current;
                         dirty = true;
                     }

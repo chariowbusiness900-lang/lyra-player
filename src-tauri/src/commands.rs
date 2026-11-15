@@ -1,8 +1,8 @@
 use crate::db::{Album, Artist, IgnoredFile, Playlist, Track};
 use crate::AppState;
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 use std::sync::Arc;
-use tauri::{State, Theme, WebviewWindow};
+use tauri::{Manager, State, Theme, WebviewWindow};
 
 type S<'a> = State<'a, Arc<AppState>>;
 

@@ -1,0 +1,11 @@
+# Rust / Tauri
+src-tauri/target/
+src-tauri/gen/schemas/
+
+# Icônes générées par scripts/gen-icon.ps1
+src-tauri/icons/
+
+# Divers
+*.log
+.DS_Store
+Thumbs.db

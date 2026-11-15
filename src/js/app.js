@@ -447,10 +447,19 @@ async function renderSettings() {
 
 /* ---------- Actions bibliothèque ---------- */
 async function addFolderFlow() {
-  const dir = await window.__TAURI__.dialog.open({ directory: true, multiple: false, title: "Choisir un dossier de musique" });
+  let dir = null;
+  // 1) Dialogue natif côté Rust (toujours disponible, sans bundler npm).
+  try { dir = await invoke("pick_folder"); } catch { dir = null; }
+  // 2) Repli sur l'API JS du plugin si elle est exposée.
+  if (!dir) {
+    try {
+      const dlg = window.__TAURI__?.dialog;
+      if (dlg?.open) dir = await dlg.open({ directory: true, multiple: false, title: "Choisir un dossier de musique" });
+    } catch { dir = null; }
+  }
   if (!dir) return;
   await invoke("add_folder", { path: dir });
-  toast(`Dossier ajouté : ${dir}`);
+  toast("Dossier ajouté : " + dir);
   await rescan();
 }
 

@@ -1,0 +1,105 @@
+name: Build Lyra (Windows)
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Generate icons
+        shell: pwsh
+        run: ./scripts/gen-icon.ps1
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "^2" --locked
+
+      - name: Build (release)
+        working-directory: src-tauri
+        run: cargo tauri build
+
+      - name: Locate signtool
+        id: signtool
+        shell: pwsh
+        run: |
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+            Where-Object { $_.FullName -match "x64" } |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1 -ExpandProperty FullName
+          "path=$signtool" | Add-Content $env:GITHUB_OUTPUT
+          Write-Host "signtool: $signtool"
+
+      - name: Prepare certificate
+        id: cert
+        shell: pwsh
+        env:
+          LYRA_PFX_BASE64: ${{ secrets.LYRA_PFX_BASE64 }}
+          LYRA_PFX_PASSWORD: ${{ secrets.LYRA_PFX_PASSWORD }}
+        run: |
+          if ($env:LYRA_PFX_BASE64) {
+            [IO.File]::WriteAllBytes("$PWD\lyra.pfx", [Convert]::FromBase64String($env:LYRA_PFX_BASE64))
+            "pass=$env:LYRA_PFX_PASSWORD" | Add-Content $env:GITHUB_OUTPUT
+            Write-Host "Certificat fourni via les secrets GitHub."
+          } else {
+            # Fallback : certificat auto-signé éphémère (signature de test).
+            $pass = "Lyra$(Get-Random)!"
+            $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=Lyra, O=Lyra" `
+              -KeyUsage DigitalSignature -FriendlyName "Lyra Code Signing" `
+              -CertStoreLocation "Cert:\CurrentUser\My"
+            Export-PfxCertificate -Cert $cert -FilePath "$PWD\lyra.pfx" -Password (ConvertTo-SecureString $pass -AsPlainText -Force) | Out-Null
+            "pass=$pass" | Add-Content $env:GITHUB_OUTPUT
+            Write-Host "Attention : certificat auto-signé éphémère (éditeur inconnu chez les utilisateurs)."
+          }
+
+      - name: Sign executables
+        shell: pwsh
+        env:
+          SIGNTOOL: ${{ steps.signtool.outputs.path }}
+          PFX_PASSWORD: ${{ steps.cert.outputs.pass }}
+        run: |
+          $files = @(
+            "src-tauri\target\release\lyra.exe"
+          ) + (Get-ChildItem "src-tauri\target\release\bundle\nsis" -Filter "*.exe" | ForEach-Object { $_.FullName })
+          foreach ($f in $files) {
+            if (Test-Path $f) {
+              & $env:SIGNTOOL sign /f "$PWD\lyra.pfx" /p $env:PFX_PASSWORD `
+                /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com $f
+              & $env:SIGNTOOL verify /pa $f
+            }
+          }
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: lyra-windows
+          path: |
+            src-tauri/target/release/lyra.exe
+            src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
+
+      - name: Publish release (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $files = @("src-tauri\target\release\lyra.exe") +
+                   (Get-ChildItem "src-tauri\target\release\bundle\nsis" -Filter "*.exe" | ForEach-Object { $_.FullName })
+          gh release create "$env:GITHUB_REF_NAME" $files --generate-notes --title "Lyra $env:GITHUB_REF_NAME"

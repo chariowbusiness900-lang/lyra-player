@@ -28,12 +28,12 @@ jobs:
         shell: pwsh
         run: ./scripts/gen-icon.ps1
 
-      - name: Install Tauri CLI
-        run: cargo install tauri-cli --version "^2" --locked
+      - name: Install Tauri CLI (binaire précompilé)
+        run: npm install --global @tauri-apps/cli@^2
 
       - name: Build (release)
         working-directory: src-tauri
-        run: cargo tauri build
+        run: tauri build
 
       - name: Locate signtool
         id: signtool

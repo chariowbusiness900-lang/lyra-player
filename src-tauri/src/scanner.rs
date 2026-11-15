@@ -84,7 +84,7 @@ pub fn parse_track(path: &Path, size: i64) -> Result<(ParsedTrack, Option<Vec<u8
         });
     let artist = tag.as_ref().and_then(|t| t.artist().map(|v| v.to_string()));
     let album = tag.as_ref().and_then(|t| t.album().map(|v| v.to_string()));
-    let album_artist = tag.as_ref().and_then(|t| t.get_string(lofty::tag::ItemKey::AlbumArtist).map(|v| v.to_string()));
+    let album_artist = tag.as_ref().and_then(|t| t.get_string(&lofty::tag::ItemKey::AlbumArtist).map(|v| v.to_string()));
     let track_no = tag.as_ref().and_then(|t| t.track()).map(|v| v as i64);
     let year = tag.as_ref().and_then(|t| t.year()).map(|v| v as i64);
     let genre = tag.as_ref().and_then(|t| t.genre().map(|v| v.to_string()));

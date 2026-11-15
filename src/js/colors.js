@@ -119,6 +119,29 @@ function setVars(accent, accentText, accentSoft, npC1, npC2) {
 let currentKey = null;
 const cache = new Map();
 
+/**
+ * Charge la pochette dans une image exploitable par canvas.
+ * On passe par fetch + blob : l'image vient alors de la même origine que la
+ * page, donc le canvas n'est pas « corrompu » (contrairement à une <img>
+ * pointant directement sur le protocole asset://).
+ */
+async function loadCoverImage(src) {
+  try {
+    const res = await fetch(src);
+    if (res.ok) {
+      const blob = await res.blob();
+      if (typeof createImageBitmap === "function") return await createImageBitmap(blob);
+    }
+  } catch { /* on tente le repli <img> */ }
+  return await new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
 /** Applique les couleurs dérivées de la pochette (avec cache + fallback neutre). */
 export async function applyCoverTheme(coverPath, theme) {
   if (!coverPath) {
@@ -131,18 +154,14 @@ export async function applyCoverTheme(coverPath, theme) {
 
   let palette = cache.get(coverPath);
   if (!palette) {
-    palette = await new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        try {
-          const dom = dominantColor(img);
-          resolve(dom ? buildPalette(dom) : null);
-        } catch { resolve(null); }
-      };
-      img.onerror = () => resolve(null);
-      img.src = coverPath;
-    });
-    cache.set(coverPath, palette);
+    const img = await loadCoverImage(coverPath);
+    if (img) {
+      try {
+        const dom = dominantColor(img);
+        palette = dom ? buildPalette(dom) : null;
+      } catch { palette = null; }
+    }
+    if (palette) cache.set(coverPath, palette);
   }
   if (palette) setVars(palette.accent, palette.accentText, palette.accentSoft, palette.npC1, palette.npC2);
   else applyNeutral(theme);

@@ -102,4 +102,13 @@ jobs:
         run: |
           $files = @("src-tauri\target\release\lyra.exe") +
                    (Get-ChildItem "src-tauri\target\release\bundle\nsis" -Filter "*.exe" | ForEach-Object { $_.FullName })
-          gh release create "$env:GITHUB_REF_NAME" $files --generate-notes --title "Lyra $env:GITHUB_REF_NAME"
+          $tag = $env:GITHUB_REF_NAME
+          gh release view $tag --json tagName 2>$null | Out-Null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Release $tag existante : mise à jour des fichiers (--clobber)."
+            gh release upload $tag $files --clobber
+          } else {
+            Write-Host "Création de la release $tag."
+            gh release create $tag $files --generate-notes --title "Lyra $tag"
+          }
+          if ($LASTEXITCODE -ne 0) { exit 1 }

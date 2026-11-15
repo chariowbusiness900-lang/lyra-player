@@ -39,12 +39,17 @@ jobs:
         id: signtool
         shell: pwsh
         run: |
-          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
-            Where-Object { $_.FullName -match "x64" } |
+          $candidates = @()
+          $candidates += Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue |
+            Where-Object { $_.Directory.Name -eq "x64" } |
             Sort-Object FullName -Descending |
-            Select-Object -First 1 -ExpandProperty FullName
+            Select-Object -ExpandProperty FullName
+          $onPath = (Get-Command signtool.exe -ErrorAction SilentlyContinue).Source
+          if ($onPath) { $candidates += $onPath }
+          $signtool = $candidates | Where-Object { $_ } | Select-Object -First 1
+          if (-not $signtool) { throw "signtool.exe introuvable sur ce runner" }
           "path=$signtool" | Add-Content $env:GITHUB_OUTPUT
-          Write-Host "signtool: $signtool"
+          Write-Host "signtool utilise : $signtool"
 
       - name: Prepare certificate
         id: cert
@@ -58,14 +63,12 @@ jobs:
             "pass=$env:LYRA_PFX_PASSWORD" | Add-Content $env:GITHUB_OUTPUT
             Write-Host "Certificat fourni via les secrets GitHub."
           } else {
-            # Fallback : certificat auto-signé éphémère (signature de test).
             $pass = "Lyra$(Get-Random)!"
-            $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=Lyra, O=Lyra" `
-              -KeyUsage DigitalSignature -FriendlyName "Lyra Code Signing" `
-              -CertStoreLocation "Cert:\CurrentUser\My"
+            $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=Lyra Player, O=Lyra" -KeyUsage DigitalSignature -FriendlyName "Lyra Code Signing" -CertStoreLocation "Cert:\CurrentUser\My"
             Export-PfxCertificate -Cert $cert -FilePath "$PWD\lyra.pfx" -Password (ConvertTo-SecureString $pass -AsPlainText -Force) | Out-Null
+            Export-Certificate -Cert $cert -FilePath "$PWD\lyra-codesign.cer" | Out-Null
             "pass=$pass" | Add-Content $env:GITHUB_OUTPUT
-            Write-Host "Attention : certificat auto-signé éphémère (éditeur inconnu chez les utilisateurs)."
+            Write-Host "Certificat auto-signe ephemere : Windows affichera un editeur inconnu tant que le .cer nest pas installe."
           }
 
       - name: Sign executables
@@ -74,17 +77,32 @@ jobs:
           SIGNTOOL: ${{ steps.signtool.outputs.path }}
           PFX_PASSWORD: ${{ steps.cert.outputs.pass }}
         run: |
-          $files = @(
-            "src-tauri\target\release\lyra.exe"
-          ) + (Get-ChildItem "src-tauri\target\release\bundle\nsis" -Filter "*.exe" | ForEach-Object { $_.FullName })
+          $files = @("src-tauri\target\release\lyra.exe") + (Get-ChildItem "src-tauri\target\release\bundle\nsis" -Filter "*.exe" -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
+          $signed = 0
+          $failed = 0
           foreach ($f in $files) {
-            if (Test-Path $f) {
-              & $env:SIGNTOOL sign /f "$PWD\lyra.pfx" /p $env:PFX_PASSWORD `
-                /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com $f
-              & $env:SIGNTOOL verify /pa $f
+            if (-not (Test-Path $f)) { Write-Host "Absent, ignore : $f"; continue }
+            $ok = $false
+            foreach ($ts in @("http://timestamp.digicert.com", "http://timestamp.sectigo.com", "")) {
+              $signArgs = @("sign", "/f", "$PWD\lyra.pfx", "/p", $env:PFX_PASSWORD, "/fd", "SHA256")
+              if ($ts -ne "") { $signArgs += @("/td", "SHA256", "/tr", $ts) }
+              $signArgs += $f
+              & $env:SIGNTOOL @signArgs
+              $code = $LASTEXITCODE
+              if ($code -eq 0) { $ok = $true; Write-Host "Signe : $f (horodatage : $ts)"; break }
+              Write-Host "Echec de signature avec horodatage [$ts] (code $code), nouvel essai."
+            }
+            if ($ok) {
+              $signed++
+              $sig = Get-AuthenticodeSignature -FilePath $f
+              Write-Host ("Signature : {0} / {1}" -f $sig.Status, $sig.SignerCertificate.Subject)
+            } else {
+              $failed++
+              Write-Host "::warning::Signature impossible pour $f"
             }
           }
-
+          Write-Host ("Fichiers signes : {0} / echecs : {1}" -f $signed, $failed)
+          if ($signed -eq 0) { Write-Host "::warning::Aucun fichier signe : la release sera publiee non signee." }
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -102,6 +120,7 @@ jobs:
         run: |
           $files = @("src-tauri\target\release\lyra.exe") +
                    (Get-ChildItem "src-tauri\target\release\bundle\nsis" -Filter "*.exe" | ForEach-Object { $_.FullName })
+          if (Test-Path "lyra-codesign.cer") { $files += (Resolve-Path "lyra-codesign.cer").Path }
           $tag = $env:GITHUB_REF_NAME
           gh release view $tag --json tagName 2>$null | Out-Null
           if ($LASTEXITCODE -eq 0) {

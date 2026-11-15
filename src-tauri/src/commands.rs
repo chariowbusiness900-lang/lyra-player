@@ -197,3 +197,15 @@ pub fn app_data_dir(app: tauri::AppHandle) -> String {
         .map(|p| p.to_string_lossy().to_string())
         .unwrap_or_default()
 }
+
+/// Sélection native d'un dossier de musique (côté Rust : aucune dépendance npm requise).
+#[tauri::command]
+pub async fn pick_folder(app: tauri::AppHandle) -> Option<String> {
+    use tauri_plugin_dialog::DialogExt;
+    app.dialog()
+        .file()
+        .set_title("Choisir un dossier de musique")
+        .blocking_pick_folder()
+        .and_then(|p| p.into_path().ok())
+        .map(|p| p.to_string_lossy().to_string())
+}

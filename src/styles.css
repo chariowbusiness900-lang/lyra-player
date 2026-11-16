@@ -4,9 +4,9 @@
 
 :root {
   --font: "Segoe UI Variable Display", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
-  --accent: #868c96;
+  --accent: #6b7280;
   --accent-text: #ffffff;
-  --accent-soft: rgba(134, 140, 150, 0.18);
+  --accent-soft: rgba(107, 114, 128, 0.18);
   --radius: 8px;
   --radius-lg: 12px;
   --dur: 220ms;

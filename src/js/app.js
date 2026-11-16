@@ -209,7 +209,13 @@ const renderers = {
         </div></div></div>`;
       $("w-music").onclick = async () => {
         try {
-          const dir = await window.__TAURI__.path.musicDir();
+          // Résolu côté Rust : l'API path du WebView n'est pas garantie sans bundler.
+          let dir = await invoke("music_dir").catch(() => null);
+          if (!dir) {
+            const p = window.__TAURI__ && window.__TAURI__.path;
+            dir = p && p.audioDir ? await p.audioDir() : null;
+          }
+          if (!dir) throw new Error("dossier Musique introuvable");
           await invoke("add_folder", { path: dir });
           await rescan();
         } catch { toast("Impossible de trouver le dossier Musique"); }

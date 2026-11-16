@@ -3,10 +3,14 @@
 // ============================================================
 import { player, initPlayer, renderQueue, escapeHtml, syncSliderFill } from "./player.js";
 import { resetTheme } from "./colors.js";
+import { icon, hydrate } from "./icons.js";
 import { fmtTime, debounce } from "./util.js";
 
 const { invoke, convertFileSrc } = window.__TAURI__.core;
 const $ = (id) => document.getElementById(id);
+
+// Remplit les icônes SVG statiques de la coque.
+hydrate();
 
 /* ---------- État ---------- */
 const state = {
@@ -43,8 +47,8 @@ function coverSrc(track) {
   return track?.cover ? convertFileSrc(track.cover) : "";
 }
 
-function tilePh(char, cls = "") {
-  return `<div class="tile-ph ${cls}">${char}</div>`;
+function tilePh(name, cls = "") {
+  return `<div class="tile-ph ${cls}">${icon(name)}</div>`;
 }
 
 /* ---------- Navigation ---------- */
@@ -99,11 +103,11 @@ function trackRows(list, ctxLabel = "Bibliothèque") {
   list.forEach((t, i) => {
     frag.push(`
       <div class="trow ${cur && cur.id === t.id ? "playing" : ""}" data-i="${i}">
-        ${t.cover ? `<img src="${coverSrc(t)}" alt="" loading="lazy" />` : tilePh("♪")}
+        ${t.cover ? `<img src="${coverSrc(t)}" alt="" loading="lazy" />` : tilePh("note")}
         <div><div class="tr-title">${escapeHtml(t.title)}</div></div>
         <div><div class="tr-sub">${escapeHtml(t.artist || "Artiste inconnu")}</div></div>
         <div class="tr-dur">${fmtTime(t.duration)}</div>
-        <button class="tr-like ${t.fav ? "liked" : ""}" data-act="fav" data-id="${t.id}">${t.fav ? "♥" : "♡"}</button>
+        <button class="tr-like ${t.fav ? "liked" : ""}" data-act="fav" data-id="${t.id}">${t.fav ? icon("heart-filled") : icon("heart")}</button>
         <button class="tr-more" data-act="menu" data-id="${t.id}" data-i="${i}">⋯</button>
       </div>`);
   });
@@ -119,7 +123,7 @@ function bindTrackList(container, list) {
     b.onclick = async (e) => {
       e.stopPropagation();
       const fav = await invoke("toggle_fav", { id: parseInt(b.dataset.id, 10) });
-      b.textContent = fav ? "♥" : "♡";
+      b.innerHTML = icon(fav ? "heart-filled" : "heart");
       b.classList.toggle("liked", fav);
       const t = list.find((x) => x.id === parseInt(b.dataset.id, 10));
       if (t) t.fav = fav;
@@ -144,21 +148,21 @@ function openTrackMenu(ev, list, i) {
   const track = list[i];
   const menu = $("ctx-menu");
   const items = [
-    { label: "▶  Lire", fn: () => play(list, i) },
-    { label: "⤵  Ajouter à la file", fn: () => { player.queue.push(track); renderQueue(); toast("Ajouté à la file d'attente"); } },
+    { label: "Lire", fn: () => play(list, i) },
+    { label: "Ajouter à la file", fn: () => { player.queue.push(track); renderQueue(); toast("Ajouté à la file d'attente"); } },
     { sep: true },
-    { label: track.fav ? "♡  Retirer des favoris" : "♥  Ajouter aux favoris", fn: async () => { await invoke("toggle_fav", { id: track.id }); track.fav = !track.fav; render(); } },
+    { label: track.fav ? "Retirer des favoris" : "Ajouter aux favoris", fn: async () => { await invoke("toggle_fav", { id: track.id }); track.fav = !track.fav; render(); } },
     { sep: true },
   ];
   if (state.playlists.length) {
     state.playlists.forEach((p) =>
-      items.push({ label: `📝  ${p.name}`, fn: async () => { await invoke("add_to_playlist", { playlistId: p.id, trackId: track.id }); toast(`Ajouté à « ${p.name} »`); } })
+      items.push({ label: p.name, fn: async () => { await invoke("add_to_playlist", { playlistId: p.id, trackId: track.id }); toast(`Ajouté à « ${p.name} »`); } })
     );
   } else {
-    items.push({ label: "📝  Nouvelle playlist…", fn: async () => newPlaylistThenAdd(track) });
+    items.push({ label: "Nouvelle playlist…", fn: async () => newPlaylistThenAdd(track) });
   }
   items.push({ sep: true });
-  items.push({ label: "🔤  Afficher le fichier", fn: () => toast(track.path) });
+  items.push({ label: "Afficher le chemin du fichier", fn: () => toast(track.path) });
 
   menu.innerHTML = "";
   for (const it of items) {
@@ -197,7 +201,7 @@ const renderers = {
     const tracks = await invoke("get_tracks", { filter: "all" });
     if (!tracks.length) {
       view.innerHTML = `<div class="welcome view-anim"><div class="welcome-card">
-        <h2>Bienvenue dans Lyra ♪</h2>
+        <h2>Bienvenue dans Lyra</h2>
         <p>Ajoutez vos dossiers de musique une seule fois : Lyra les scanne à chaque ouverture, ajoute les nouveaux morceaux en direct et adapte ses couleurs à chaque pochette.</p>
         <div class="welcome-actions">
           <button class="btn primary" id="w-music">Utiliser le dossier Musique</button>
@@ -227,7 +231,7 @@ const renderers = {
       items.slice(0, 8).forEach((t) => {
         const div = document.createElement("button");
         div.className = "home-tile";
-        div.innerHTML = `${t.cover ? `<img src="${coverSrc(t)}" alt="" />` : tilePh("♪")}
+        div.innerHTML = `${t.cover ? `<img src="${coverSrc(t)}" alt="" />` : tilePh("note")}
           <div style="min-width:0"><div class="t">${escapeHtml(t.title || t.album)}</div><div class="s">${escapeHtml(subOf(t))}</div></div>`;
         div.onclick = () => open(t);
         el.appendChild(div);
@@ -239,7 +243,7 @@ const renderers = {
     albums.forEach((a) => {
       const c = document.createElement("button");
       c.className = "card";
-      c.innerHTML = `${a.cover ? `<img src="${convertFileSrc(a.cover)}" alt="" />` : tilePh("💿", "big")}
+      c.innerHTML = `${a.cover ? `<img src="${convertFileSrc(a.cover)}" alt="" />` : tilePh("disc", "big")}
         <div class="c-title">${escapeHtml(a.album)}</div><div class="c-sub">${escapeHtml(a.album_artist || "")}</div>`;
       c.onclick = () => nav("detail", { kind: "album", value: a.album, title: a.album });
       alb.appendChild(c);
@@ -280,7 +284,7 @@ const renderers = {
     albums.forEach((a) => {
       const c = document.createElement("button");
       c.className = "card";
-      c.innerHTML = `${a.cover ? `<img src="${convertFileSrc(a.cover)}" alt="" loading="lazy" />` : tilePh("💿", "big")}
+      c.innerHTML = `${a.cover ? `<img src="${convertFileSrc(a.cover)}" alt="" loading="lazy" />` : tilePh("disc", "big")}
         <div class="c-title">${escapeHtml(a.album)}</div>
         <div class="c-sub">${escapeHtml(a.album_artist || "Artiste inconnu")} · ${a.count} titres · ${fmtTime(a.total_duration)}</div>`;
       c.onclick = () => nav("detail", { kind: "album", value: a.album, title: a.album });
@@ -298,7 +302,7 @@ const renderers = {
     artists.forEach((a) => {
       const c = document.createElement("button");
       c.className = "card";
-      c.innerHTML = `${a.cover ? `<img src="${convertFileSrc(a.cover)}" alt="" loading="lazy" />` : tilePh("🎤", "big")}
+      c.innerHTML = `${a.cover ? `<img src="${convertFileSrc(a.cover)}" alt="" loading="lazy" />` : tilePh("mic", "big")}
         <div class="c-title">${escapeHtml(a.artist)}</div>
         <div class="c-sub">${a.count} titres · ${fmtTime(a.total_duration)}</div>`;
       c.onclick = () => nav("detail", { kind: "artist", value: a.artist, title: a.artist });
@@ -317,14 +321,14 @@ const renderers = {
     const cover = list.find((t) => t.cover)?.cover;
     $("view").innerHTML = `<div class="view-anim">
       <div style="display:flex;align-items:center;gap:22px;margin:14px 0 18px">
-        ${cover ? `<img src="${convertFileSrc(cover)}" style="width:130px;height:130px;border-radius:12px;object-fit:cover;box-shadow:var(--shadow-sm)" />` : tilePh(d.kind === "playlist" ? "📝" : "💿", "big")}
+        ${cover ? `<img src="${convertFileSrc(cover)}" style="width:130px;height:130px;border-radius:12px;object-fit:cover;box-shadow:var(--shadow-sm)" />` : tilePh(d.kind === "playlist" ? "playlist" : "disc", "big")}
         <div>
           <div style="font-size:12px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">${d.kind === "album" ? "Album" : d.kind === "artist" ? "Artiste" : "Playlist"}</div>
           <div style="font-size:28px;font-weight:700;margin:4px 0 6px">${escapeHtml(d.title)}</div>
           <div style="font-size:13px;color:var(--text-2)">${list.length} titres · ${fmtTime(list.reduce((s, t) => s + t.duration, 0))}</div>
           <div style="display:flex;gap:10px;margin-top:12px">
-            <button class="btn primary" id="d-play">▶ Lire</button>
-            <button class="btn" id="d-queue">⤵ Ajouter à la file</button>
+            <button class="btn primary" id="d-play">${icon("play")} Lire</button>
+            <button class="btn" id="d-queue">${icon("queue")} Ajouter à la file</button>
             ${d.kind === "playlist" ? `<button class="btn danger" id="d-del">Supprimer</button>` : ""}
           </div>
         </div>
@@ -345,10 +349,10 @@ const renderers = {
     const view = $("view");
     const ps = state.playlists;
     view.innerHTML = `<div class="view-anim">
-      <button class="btn primary" id="pl-new" style="margin:10px 0 16px">＋ Nouvelle playlist</button>
+      <button class="btn primary" id="pl-new" style="margin:10px 0 16px">${icon("plus")} Nouvelle playlist</button>
       ${ps.length ? `<div class="grid">${ps.map((p) => `
         <button class="card" data-pid="${p.id}">
-          ${tilePh("📝", "big")}
+          ${tilePh("playlist", "big")}
           <div class="c-title">${escapeHtml(p.name)}</div>
         </button>`).join("")}</div>` : `<div class="empty">Créez votre première playlist.</div>`}
     </div>`;
@@ -393,10 +397,10 @@ async function renderSettings() {
       <div class="desc">Scannés automatiquement à chaque ouverture et surveillés pendant que Lyra tourne.</div>
       <div id="folders">${folders.length ? folders.map((f) => `
         <div class="folder-row"><span class="fp" title="${escapeHtml(f)}">${escapeHtml(f)}</span>
-        <button class="icon-btn small" data-rm="${escapeHtml(f)}">🗑</button></div>`).join("") : `<div class="empty" style="padding:14px">Aucun dossier.</div>`}</div>
+        <button class="icon-btn small" data-rm="${escapeHtml(f)}" title="Retirer">${icon("trash")}</button></div>`).join("") : `<div class="empty" style="padding:14px">Aucun dossier.</div>`}</div>
       <div style="display:flex;gap:10px;margin-top:12px">
         <button class="btn primary" id="s-add">Ajouter un dossier…</button>
-        <button class="btn" id="s-rescan">↻ Rescanner maintenant</button>
+        <button class="btn" id="s-rescan">${icon("refresh")} Rescanner maintenant</button>
       </div>
     </div>
 

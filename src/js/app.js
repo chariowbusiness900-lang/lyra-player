@@ -421,7 +421,7 @@ async function renderSettings() {
       <div id="ignored">${ignored.slice(0, 30).map((g) => `
         <div class="folder-row"><span class="fp" title="${escapeHtml(g.path)}">${escapeHtml(g.path.split(/[\\\\/]/).pop())}</span>
         <span class="ig-reason">${escapeHtml(g.reason)}</span>
-        <button class="btn subtle" data-add="${escapeHtml(g.path)}">Ajouter</button></div>`).join("") || `<div class="empty" style="padding:14px">Aucun fichier ignoré.</div>`}</div>
+        <button class="btn subtle" data-add="${escapeHtml(g.path)}" title="Ajouter malgré les filtres">Forcer l'ajout</button></div>`).join("") || `<div class="empty" style="padding:14px">Aucun fichier ignoré.</div>`}</div>
     </div>
 
     <div class="set-card">

@@ -455,3 +455,25 @@ input[type="number"]:focus { border-color: var(--accent); }
 .empty { color: var(--text-3); font-size: 13.5px; text-align: center; padding: 60px 0; }
 
 ::selection { background: var(--accent-soft); }
+
+/* ---------- Icônes Fluent (SVG) ---------- */
+.ic { display: block; flex: none; }
+.ni-icon { display: flex; align-items: center; justify-content: center; width: 20px; font-size: 0; }
+.ni-icon .ic { width: 18px; height: 18px; }
+.nav-item.active .ni-icon { color: var(--accent); }
+.icon-btn .ic { width: 19px; height: 19px; }
+.icon-btn.small .ic { width: 17px; height: 17px; }
+.play-btn .ic { width: 20px; height: 20px; }
+.play-btn.big .ic { width: 26px; height: 26px; }
+#play-icon, #np-play-icon { display: flex; align-items: center; justify-content: center; }
+.tile-ph .ic { width: 20px; height: 20px; opacity: 0.92; }
+.card .tile-ph.big .ic { width: 40px; height: 40px; }
+.trow .tile-ph .ic { width: 16px; height: 16px; }
+.tr-like { display: flex; align-items: center; justify-content: center; }
+.tr-like .ic { width: 16px; height: 16px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; }
+.btn .ic { width: 16px; height: 16px; }
+#search-box { margin-left: auto; position: relative; display: flex; align-items: center; }
+#search-box .search-ic { position: absolute; left: 11px; display: flex; color: var(--text-3); pointer-events: none; }
+#search-box .search-ic .ic { width: 16px; height: 16px; }
+#search { margin-left: 0; padding-left: 34px; }

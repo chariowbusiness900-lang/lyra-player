@@ -36,6 +36,21 @@ fn main() {
             watcher::spawn(state.clone());
 
             app.manage(state);
+
+            // Adapte la fenêtre au bureau réel : sur un portable 1366x768 ou un
+            // écran mis à l'échelle (1280x720 logiques), une fenêtre de 740 px
+            // de haut sortirait de l'écran et masquerait la barre de lecture.
+            if let Some(win) = app.get_webview_window("main") {
+                if let Ok(Some(mon)) = win.current_monitor() {
+                    let scale = mon.scale_factor();
+                    let screen = mon.size().to_logical::<f64>(scale);
+                    let w = (screen.width * 0.94).clamp(880.0, 1320.0);
+                    let h = (screen.height * 0.88).clamp(520.0, 860.0);
+                    let _ = win.set_size(tauri::LogicalSize::new(w, h));
+                    let _ = win.center();
+                }
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

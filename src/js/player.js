@@ -269,7 +269,31 @@ export function initPlayer() {
   $("btn-expand").onclick = () => $("nowplaying").classList.add("open");
   $("np-close").onclick = () => $("nowplaying").classList.remove("open");
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") $("nowplaying").classList.remove("open");
+    if (e.key === "Escape") {
+      $("nowplaying").classList.remove("open");
+      return;
+    }
+    const el = e.target;
+    const tag = (el && el.tagName ? el.tagName : "").toLowerCase();
+    // Ne pas détourner la saisie ni l'activation d'un bouton au clavier.
+    if (tag === "input" || tag === "textarea" || tag === "button" || (el && el.isContentEditable)) return;
+    if (e.code === "Space" || e.key === " ") {
+      e.preventDefault();
+      togglePlay();
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      if (e.shiftKey) next();
+      else if (audio.duration) audio.currentTime = Math.min(audio.currentTime + 5, audio.duration);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      if (e.shiftKey) prev();
+      else audio.currentTime = Math.max(audio.currentTime - 5, 0);
+    } else if (e.key.toLowerCase() === "m") {
+      audio.volume = audio.volume === 0 ? 0.8 : 0;
+      $("volume").value = audio.volume * 100;
+      syncSliderFill($("volume"));
+      updateVolumeIcon();
+    }
   });
   $("np-queue-list").addEventListener("click", (e) => {
     const row = e.target.closest(".q-row");

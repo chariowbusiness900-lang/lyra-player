@@ -201,10 +201,10 @@ pub fn add_paths(state: S, paths: Vec<String>) -> serde_json::Value {
 /// Dossier « Musique » de l'utilisateur, résolu par le système (API Tauri v2 : audio_dir).
 #[tauri::command]
 pub fn music_dir(app: tauri::AppHandle) -> Option<String> {
-    app.path()
-        .audio_dir()
-        .ok()
-        .map(|p| p.to_string_lossy().to_string())
+    let dir = app.path().audio_dir().ok()?;
+    // Certains profils Windows n'ont pas encore de dossier Musique.
+    std::fs::create_dir_all(&dir).ok();
+    Some(dir.to_string_lossy().to_string())
 }
 
 #[tauri::command]

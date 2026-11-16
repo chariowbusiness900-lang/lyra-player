@@ -486,4 +486,4 @@ input[type="number"]:focus { border-color: var(--accent); }
 
 /* ---------- Pochette absente : aucun cadre vide ---------- */
 #pb-cover:not([src]), #pb-cover[src=""], #np-cover:not([src]), #np-cover[src=""] { visibility: hidden; }
-#pb-cover, #np-cover { background: var(--card-2); object-fit: cover; }
+#pb-cover, #np-cover { background: var(--bg-2); object-fit: cover; }

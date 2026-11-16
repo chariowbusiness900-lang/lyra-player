@@ -20,9 +20,9 @@
         "label": "main",
         "title": "Lyra — Lecteur de musique",
         "width": 1180,
-        "height": 740,
+        "height": 700,
         "minWidth": 900,
-        "minHeight": 600,
+        "minHeight": 560,
         "center": true
       }
     ]

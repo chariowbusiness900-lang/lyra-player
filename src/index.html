@@ -15,24 +15,27 @@
         <span>Lyra</span>
       </div>
       <nav id="nav">
-        <button class="nav-item active" data-view="home"><span class="ni-icon">🏠</span><span>Accueil</span></button>
-        <button class="nav-item" data-view="tracks"><span class="ni-icon">🎵</span><span>Titres</span></button>
-        <button class="nav-item" data-view="albums"><span class="ni-icon">💿</span><span>Albums</span></button>
-        <button class="nav-item" data-view="artists"><span class="ni-icon">🎤</span><span>Artistes</span></button>
-        <button class="nav-item" data-view="playlists"><span class="ni-icon">📝</span><span>Playlists</span></button>
+        <button class="nav-item active" data-view="home"><span class="ni-icon" data-icon="home"></span><span>Accueil</span></button>
+        <button class="nav-item" data-view="tracks"><span class="ni-icon" data-icon="tracks"></span><span>Titres</span></button>
+        <button class="nav-item" data-view="albums"><span class="ni-icon" data-icon="albums"></span><span>Albums</span></button>
+        <button class="nav-item" data-view="artists"><span class="ni-icon" data-icon="artists"></span><span>Artistes</span></button>
+        <button class="nav-item" data-view="playlists"><span class="ni-icon" data-icon="playlists"></span><span>Playlists</span></button>
         <div class="nav-sep"></div>
-        <button class="nav-item" data-view="favorites"><span class="ni-icon">❤️</span><span>Favoris</span></button>
-        <button class="nav-item" data-view="recents"><span class="ni-icon">🕐</span><span>Récents</span></button>
+        <button class="nav-item" data-view="favorites"><span class="ni-icon" data-icon="heart"></span><span>Favoris</span></button>
+        <button class="nav-item" data-view="recents"><span class="ni-icon" data-icon="clock"></span><span>Récents</span></button>
       </nav>
       <div class="sb-bottom">
-        <button class="nav-item" id="btn-settings"><span class="ni-icon">⚙️</span><span>Paramètres</span></button>
+        <button class="nav-item" id="btn-settings"><span class="ni-icon" data-icon="settings"></span><span>Paramètres</span></button>
       </div>
     </aside>
 
     <main id="main">
       <header id="topbar">
         <div id="topbar-title">Accueil</div>
-        <input id="search" type="search" placeholder="Rechercher un titre, un artiste, un album…" spellcheck="false" />
+        <div id="search-box">
+          <span class="search-ic" data-icon="search"></span>
+          <input id="search" type="search" placeholder="Rechercher un titre, un artiste, un album…" spellcheck="false" aria-label="Rechercher" />
+        </div>
       </header>
       <section id="view"></section>
     </main>
@@ -44,27 +47,27 @@
           <div id="pb-title">Rien à lire pour l'instant</div>
           <div id="pb-artist"></div>
         </div>
-        <button id="pb-like" class="icon-btn" title="Favori">♡</button>
+        <button id="pb-like" class="icon-btn" title="Favori" aria-label="Favori"><span data-icon="heart"></span></button>
       </div>
       <div id="pb-center">
         <div id="pb-controls">
-          <button id="btn-shuffle" class="icon-btn small" title="Aléatoire">🔀</button>
-          <button id="btn-prev" class="icon-btn" title="Précédent">⏮</button>
-          <button id="btn-play" class="play-btn" title="Lecture / Pause"><span id="play-icon">▶</span></button>
-          <button id="btn-next" class="icon-btn" title="Suivant">⏭</button>
-          <button id="btn-repeat" class="icon-btn small" title="Répéter">🔁</button>
+          <button id="btn-shuffle" class="icon-btn small" title="Aléatoire" aria-label="Aléatoire"><span data-icon="shuffle"></span></button>
+          <button id="btn-prev" class="icon-btn" title="Précédent" aria-label="Précédent"><span data-icon="prev"></span></button>
+          <button id="btn-play" class="play-btn" title="Lecture / Pause" aria-label="Lecture ou pause"><span id="play-icon" data-icon="play"></span></button>
+          <button id="btn-next" class="icon-btn" title="Suivant" aria-label="Suivant"><span data-icon="next"></span></button>
+          <button id="btn-repeat" class="icon-btn small" title="Répéter" aria-label="Répéter"><span data-icon="repeat"></span></button>
         </div>
         <div id="pb-seek">
           <span id="pb-cur">0:00</span>
-          <div id="seek-wrap"><input id="seek" type="range" min="0" max="100" value="0" step="0.1" /></div>
+          <div id="seek-wrap"><input id="seek" type="range" min="0" max="100" value="0" step="0.1" aria-label="Position" /></div>
           <span id="pb-dur">0:00</span>
         </div>
       </div>
       <div id="pb-right">
-        <button id="btn-eq" class="icon-btn" title="Égaliseur">🎚</button>
-        <button id="btn-vol" class="icon-btn" title="Volume">🔊</button>
-        <input id="volume" type="range" min="0" max="100" value="80" />
-        <button id="btn-expand" class="icon-btn" title="Plein écran">⤢</button>
+        <button id="btn-eq" class="icon-btn" title="Égaliseur" aria-label="Égaliseur"><span data-icon="eq"></span></button>
+        <button id="btn-vol" class="icon-btn" title="Volume" aria-label="Volume"><span data-icon="volume"></span></button>
+        <input id="volume" type="range" min="0" max="100" value="80" aria-label="Volume" />
+        <button id="btn-expand" class="icon-btn" title="Plein écran" aria-label="Plein écran"><span data-icon="expand"></span></button>
       </div>
 
       <div id="eq-panel" class="popover hidden">
@@ -76,7 +79,7 @@
 
     <div id="nowplaying">
       <div id="np-backdrop"></div>
-      <button id="np-close" class="icon-btn" title="Réduire">⤡</button>
+      <button id="np-close" class="icon-btn" title="Réduire" aria-label="Réduire"><span data-icon="chevron-down"></span></button>
       <div id="np-content">
         <div id="np-left">
           <img id="np-cover" alt="" />
@@ -85,14 +88,14 @@
             <div id="np-artist"></div>
           </div>
           <div id="np-controls">
-            <button id="np-like" class="icon-btn">♡</button>
-            <button id="np-prev" class="icon-btn">⏮</button>
-            <button id="np-play" class="play-btn big"><span id="np-play-icon">▶</span></button>
-            <button id="np-next" class="icon-btn">⏭</button>
+            <button id="np-like" class="icon-btn" aria-label="Favori"><span data-icon="heart"></span></button>
+            <button id="np-prev" class="icon-btn" aria-label="Précédent"><span data-icon="prev"></span></button>
+            <button id="np-play" class="play-btn big" aria-label="Lecture ou pause"><span id="np-play-icon" data-icon="play"></span></button>
+            <button id="np-next" class="icon-btn" aria-label="Suivant"><span data-icon="next"></span></button>
           </div>
           <div id="np-seek">
             <span id="np-cur">0:00</span>
-            <div id="np-seek-wrap"><input id="np-seek" type="range" min="0" max="100" value="0" step="0.1" /></div>
+            <div id="np-seek-wrap"><input id="np-seek" type="range" min="0" max="100" value="0" step="0.1" aria-label="Position" /></div>
             <span id="np-dur">0:00</span>
           </div>
         </div>

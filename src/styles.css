@@ -477,3 +477,9 @@ input[type="number"]:focus { border-color: var(--accent); }
 #search-box .search-ic { position: absolute; left: 11px; display: flex; color: var(--text-3); pointer-events: none; }
 #search-box .search-ic .ic { width: 16px; height: 16px; }
 #search { margin-left: 0; padding-left: 34px; }
+
+/* ---------- Le contenu défile, le lecteur reste ancré ---------- */
+#app { grid-template-rows: minmax(0, 1fr) 92px; }
+#main { min-height: 0; }
+#sidebar { min-height: 0; overflow: hidden; }
+#view { min-height: 0; }

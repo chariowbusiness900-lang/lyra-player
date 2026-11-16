@@ -10,8 +10,15 @@ if (-not (Test-Path $pfx)) { throw "lyra.pfx introuvable" }
 
 $signed = 0
 $failed = 0
+$skipped = 0
 foreach ($f in $Files) {
     if (-not (Test-Path $f)) { Write-Host "Absent, ignore : $f"; continue }
+    $existing = Get-AuthenticodeSignature $f
+    if ($existing.SignerCertificate -and $existing.Status -ne "HashMismatch") {
+        Write-Host "Deja signe, ignore : $f"
+        $skipped++
+        continue
+    }
     $ok = $false
     foreach ($ts in @("http://timestamp.digicert.com", "http://timestamp.sectigo.com", "")) {
         $signArgs = @("sign", "/f", $pfx, "/p", $env:PFX_PASSWORD, "/fd", "SHA256")
@@ -31,5 +38,5 @@ foreach ($f in $Files) {
         Write-Host "::error::Signature impossible pour $f"
     }
 }
-Write-Host ("Fichiers signes : {0} / echecs : {1}" -f $signed, $failed)
+Write-Host ("Fichiers signes : {0} / deja signes : {1} / echecs : {2}" -f $signed, $skipped, $failed)
 if ($failed -gt 0) { exit 1 }

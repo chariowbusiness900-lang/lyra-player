@@ -276,17 +276,11 @@ export function initPlayer() {
     if (row) load(parseInt(row.dataset.i, 10));
   });
 
-  /* --- glisser-déposer de fichiers dans la fenêtre --- */
-  try {
-    const webview = window.__TAURI__.webview.getCurrentWebview();
-    webview.onDragDropEvent(async (ev) => {
-      if (ev.payload.type === "drop" && ev.payload.paths?.length) {
-        const res = await invoke("add_paths", { paths: ev.payload.paths });
-        document.dispatchEvent(new CustomEvent("lyra:librarychange"));
-        toast(`${res.added} morceau(x) ajouté(s)`);
-      }
-    });
-  } catch { /* glisser-déposer indisponible */ }
+  /* --- glisser-déposer : le dépôt est traité par Rust, qui rappelle cette fonction --- */
+  window.__lyraDrop = (added) => {
+    document.dispatchEvent(new CustomEvent("lyra:librarychange"));
+    toast(added > 0 ? `${added} morceau(x) ajouté(s)` : "Aucun fichier audio reconnu");
+  };
 
   function toast(msg) {
     const el = $("toast");

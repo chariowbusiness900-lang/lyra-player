@@ -35,6 +35,27 @@ fn main() {
             }
             watcher::spawn(state.clone());
 
+            // Glisser-déposer : traité en Rust (l'API JS n'est pas disponible sans
+            // bundler npm), puis renvoyé à l'interface pour rafraîchir la bibliothèque.
+            if let Some(win) = app.get_webview_window("main") {
+                let st = state.clone();
+                let wv = win.clone();
+                win.on_window_event(move |event| {
+                    if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. }) = event {
+                        let list: Vec<String> = paths
+                            .iter()
+                            .map(|p| p.to_string_lossy().to_string())
+                            .collect();
+                        let st = st.clone();
+                        let wv = wv.clone();
+                        std::thread::spawn(move || {
+                            let added = commands::add_paths_impl(&st, list);
+                            let _ = wv.eval(&format!("window.__lyraDrop && window.__lyraDrop({added});"));
+                        });
+                    }
+                });
+            }
+
             app.manage(state);
 
             // Adapte la fenêtre au bureau réel : sur un portable 1366x768 ou un
@@ -78,6 +99,7 @@ fn main() {
             commands::set_theme,
             commands::app_data_dir,
             commands::pick_folder,
+            commands::music_dir,
         ])
         .run(tauri::generate_context!())
         .expect("erreur pendant l'exécution de Lyra");

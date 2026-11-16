@@ -4,7 +4,7 @@
 // transition douce, retour au neutre si la pochette est absente.
 // ============================================================
 
-const NEUTRAL = { light: { accent: "#868c96", text: "#ffffff" }, dark: { accent: "#9aa0a8", text: "#101114" } };
+const NEUTRAL = { light: { accent: "#6b7280", text: "#ffffff" }, dark: { accent: "#9aa0a8", text: "#101114" } };
 
 function srgbToLin(c) {
   c /= 255;

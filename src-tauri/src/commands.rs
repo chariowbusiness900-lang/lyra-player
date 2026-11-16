@@ -131,15 +131,39 @@ pub fn force_add(state: S, path: String) -> Result<bool, String> {
     Ok(true)
 }
 
-/// Ajout forcé par glisser-déposer de fichiers audio dans la fenêtre.
-#[tauri::command]
-pub fn add_paths(state: S, paths: Vec<String>) -> serde_json::Value {
-    let mut added = 0usize;
+/// Ajout immédiat de fichiers audio (glisser-déposer, ou commande exposée au WebView).
+/// Les dossiers déposés sont parcourus récursivement ; les fichiers ignorés par le
+/// scan (trop courts / trop petits) sont acceptés ici, c'est un ajout explicite.
+pub fn add_paths_impl(state: &AppState, paths: Vec<String>) -> usize {
+    let mut files: Vec<std::path::PathBuf> = Vec::new();
     for path in paths {
-        let p = std::path::Path::new(&path);
-        if !p.is_file() {
-            continue;
+        let root = std::path::PathBuf::from(&path);
+        if root.is_dir() {
+            let mut stack = vec![root];
+            let mut seen = 0usize;
+            while let Some(dir) = stack.pop() {
+                seen += 1;
+                if seen > 4000 {
+                    break; // garde-fou contre une arborescence démesurée
+                }
+                if let Ok(entries) = std::fs::read_dir(&dir) {
+                    for entry in entries.flatten() {
+                        let p = entry.path();
+                        if p.is_dir() {
+                            stack.push(p);
+                        } else {
+                            files.push(p);
+                        }
+                    }
+                }
+            }
+        } else if root.is_file() {
+            files.push(root);
         }
+    }
+
+    let mut added = 0usize;
+    for p in &files {
         let ext_ok = p
             .extension()
             .and_then(|e| e.to_str())
@@ -148,6 +172,7 @@ pub fn add_paths(state: S, paths: Vec<String>) -> serde_json::Value {
         if !ext_ok {
             continue;
         }
+        let path = p.to_string_lossy().to_string();
         if let Ok(size) = std::fs::metadata(p).map(|m| m.len() as i64) {
             if let Ok((t, cover_bytes)) = crate::scanner::parse_track(p, size) {
                 let cover = cover_bytes.and_then(|b| {
@@ -164,7 +189,22 @@ pub fn add_paths(state: S, paths: Vec<String>) -> serde_json::Value {
             }
         }
     }
+    added
+}
+
+#[tauri::command]
+pub fn add_paths(state: S, paths: Vec<String>) -> serde_json::Value {
+    let added = add_paths_impl(&state, paths);
     serde_json::json!({ "added": added })
+}
+
+/// Dossier « Musique » de l'utilisateur, résolu par le système (API Tauri v2 : audio_dir).
+#[tauri::command]
+pub fn music_dir(app: tauri::AppHandle) -> Option<String> {
+    app.path()
+        .audio_dir()
+        .ok()
+        .map(|p| p.to_string_lossy().to_string())
 }
 
 #[tauri::command]

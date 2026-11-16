@@ -3,6 +3,7 @@
 // barres de progression synchronisées (mini + plein écran).
 // ============================================================
 import { applyCoverTheme, resetTheme } from "./colors.js";
+import { icon } from "./icons.js";
 import { fmtTime } from "./util.js";
 
 const { invoke, convertFileSrc } = window.__TAURI__.core;
@@ -119,17 +120,22 @@ export function initPlayer() {
   }
 
   function updatePlayIcons() {
-    const icon = audio.paused ? "▶" : "⏸";
-    $("play-icon").textContent = icon;
-    $("np-play-icon").textContent = icon;
+    const markup = icon(audio.paused ? "play" : "pause");
+    $("play-icon").innerHTML = markup;
+    $("np-play-icon").innerHTML = markup;
+  }
+
+  function updateVolumeIcon() {
+    const name = audio.volume === 0 ? "volume-mute" : audio.volume < 0.5 ? "volume-low" : "volume";
+    $("btn-vol").innerHTML = icon(name);
   }
 
   function updateLikeButtons() {
     const track = t();
     const liked = track?.fav ?? false;
-    $("pb-like").textContent = liked ? "♥" : "♡";
+    $("pb-like").innerHTML = icon(liked ? "heart-filled" : "heart");
     $("pb-like").classList.toggle("on", liked);
-    $("np-like").textContent = liked ? "♥" : "♡";
+    $("np-like").innerHTML = icon(liked ? "heart-filled" : "heart");
     $("np-like").classList.toggle("on", liked);
   }
 
@@ -189,7 +195,7 @@ export function initPlayer() {
   $("btn-repeat").onclick = (e) => {
     player.repeat = player.repeat === "off" ? "all" : player.repeat === "all" ? "one" : "off";
     e.currentTarget.classList.toggle("on", player.repeat !== "off");
-    e.currentTarget.textContent = player.repeat === "one" ? "🔂" : "🔁";
+    e.currentTarget.innerHTML = icon(player.repeat === "one" ? "repeat-one" : "repeat");
   };
 
   $("seek").addEventListener("input", () => {
@@ -207,12 +213,14 @@ export function initPlayer() {
     audio.volume = e.target.value / 100;
     localStorage.setItem("volume", e.target.value);
     syncSliderFill(e.target);
-    $("btn-vol").textContent = audio.volume === 0 ? "🔇" : audio.volume < 0.5 ? "🔉" : "🔊";
+    updateVolumeIcon();
   });
   $("btn-vol").onclick = () => {
     audio.volume = audio.volume === 0 ? 0.8 : 0;
     $("volume").value = audio.volume * 100;
+    localStorage.setItem("volume", String(Math.round(audio.volume * 100)));
     syncSliderFill($("volume"));
+    updateVolumeIcon();
   };
 
   /* --- Égaliseur UI --- */

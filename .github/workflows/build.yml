@@ -31,10 +31,7 @@ jobs:
       - name: Install Tauri CLI (binaire précompilé)
         run: npm install --global @tauri-apps/cli@^2
 
-      - name: Build (release, sans empaquetage)
-        working-directory: src-tauri
-        run: tauri build --no-bundle
-
+      # Tauri appelle signtool pendant l'empaquetage : il doit être dans le PATH.
       - name: Locate signtool
         id: signtool
         shell: pwsh
@@ -48,9 +45,13 @@ jobs:
           if ($onPath) { $candidates += $onPath }
           $signtool = $candidates | Where-Object { $_ } | Select-Object -First 1
           if (-not $signtool) { throw "signtool.exe introuvable sur ce runner" }
+          $dir = Split-Path $signtool -Parent
+          $dir | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
           "path=$signtool" | Add-Content $env:GITHUB_OUTPUT
           Write-Host "signtool utilise : $signtool"
 
+      # Le certificat est importe dans le magasin personnel : c'est par son empreinte
+      # que le bundler Tauri signera l'executable qu'il embarque dans l'installateur.
       - name: Prepare certificate
         id: cert
         shell: pwsh
@@ -59,7 +60,11 @@ jobs:
           LYRA_PFX_PASSWORD: ${{ secrets.LYRA_PFX_PASSWORD }}
         run: |
           if ($env:LYRA_PFX_BASE64) {
-            [IO.File]::WriteAllBytes("$PWD\lyra.pfx", [Convert]::FromBase64String($env:LYRA_PFX_BASE64))
+            $pfx = "$PWD\lyra.pfx"
+            [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:LYRA_PFX_BASE64))
+            $secure = ConvertTo-SecureString $env:LYRA_PFX_PASSWORD -AsPlainText -Force
+            $cert = Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $secure
+            if (-not $cert) { throw "Import du certificat fourni impossible" }
             "pass=$env:LYRA_PFX_PASSWORD" | Add-Content $env:GITHUB_OUTPUT
             Write-Host "Certificat fourni via les secrets GitHub."
           } else {
@@ -68,43 +73,56 @@ jobs:
             Export-PfxCertificate -Cert $cert -FilePath "$PWD\lyra.pfx" -Password (ConvertTo-SecureString $pass -AsPlainText -Force) | Out-Null
             Export-Certificate -Cert $cert -FilePath "$PWD\lyra-codesign.cer" | Out-Null
             "pass=$pass" | Add-Content $env:GITHUB_OUTPUT
-            Write-Host "Certificat auto-signe ephemere : Windows affichera un editeur inconnu tant que le .cer nest pas installe."
+            Write-Host "Certificat auto-signe ephemere : Windows affichera un editeur inconnu tant que le .cer n'est pas installe."
           }
+          "thumbprint=$($cert.Thumbprint)" | Add-Content $env:GITHUB_OUTPUT
+          Write-Host "Empreinte du certificat : $($cert.Thumbprint)"
 
-      - name: Sign application
+      - name: Configure signing
         shell: pwsh
         env:
-          SIGNTOOL: ${{ steps.signtool.outputs.path }}
-          PFX_PASSWORD: ${{ steps.cert.outputs.pass }}
-        run: ./scripts/sign.ps1 -Files "src-tauri\target\release\lyra.exe"
+          THUMBPRINT: ${{ steps.cert.outputs.thumbprint }}
+        run: |
+          if (-not $env:THUMBPRINT) { throw "Empreinte de signature absente" }
+          $path = "src-tauri\tauri.conf.json"
+          $conf = Get-Content $path -Raw | ConvertFrom-Json
+          $conf.bundle.windows | Add-Member -NotePropertyName certificateThumbprint -NotePropertyValue $env:THUMBPRINT -Force
+          $conf | ConvertTo-Json -Depth 20 | Set-Content $path -Encoding utf8
+          Write-Host "Signature confiee au bundler Tauri (empreinte $env:THUMBPRINT)."
 
-      # L'installateur NSIS embarque l'exe : il doit donc etre signe AVANT l'empaquetage.
-      - name: Bundle installer (NSIS)
+      # Tauri patche l'exe (type de bundle), le signe, l'embarque dans l'installateur,
+      # puis restaure l'exe d'origine sur le disque : la version portable est signee ensuite.
+      - name: Build and bundle (release)
         working-directory: src-tauri
-        run: tauri build --bundles nsis
+        run: tauri build
 
-      - name: Sign installer
+      - name: Sign portable executable
         shell: pwsh
         env:
           SIGNTOOL: ${{ steps.signtool.outputs.path }}
           PFX_PASSWORD: ${{ steps.cert.outputs.pass }}
         run: |
-          $files = Get-ChildItem "src-tauri\target\release\bundle\nsis" -Filter "*.exe" | ForEach-Object { $_.FullName }
-          if (-not $files) { throw "Aucun installateur NSIS genere" }
+          $files = @("src-tauri\target\release\lyra.exe")
+          $files += Get-ChildItem "src-tauri\target\release\bundle\nsis" -Filter "*.exe" -ErrorAction SilentlyContinue |
+            ForEach-Object { $_.FullName }
           ./scripts/sign.ps1 -Files $files
 
       - name: Verify signatures
         shell: pwsh
         run: |
-          $targets = @("src-tauri\target\release\lyra.exe") + (Get-ChildItem "src-tauri\target\release\bundle\nsis" -Filter "*.exe" | ForEach-Object { $_.FullName })
-          $missing = 0
+          $targets = @("src-tauri\target\release\lyra.exe") +
+            (Get-ChildItem "src-tauri\target\release\bundle\nsis" -Filter "*.exe" | ForEach-Object { $_.FullName })
+          if ($targets.Count -lt 2) { throw "Executable ou installateur manquant" }
+          $bad = 0
           foreach ($f in $targets) {
             $sig = Get-AuthenticodeSignature $f
             $who = if ($sig.SignerCertificate) { $sig.SignerCertificate.Subject } else { "aucun" }
-            Write-Host ("{0} : {1} ({2})" -f (Split-Path $f -Leaf), $sig.Status, $who)
-            if (-not $sig.SignerCertificate) { $missing++ }
+            $stamp = if ($sig.TimeStamperCertificate) { $sig.TimeStamperCertificate.Subject } else { "aucun" }
+            Write-Host ("{0} : {1} ({2}) / horodatage {3}" -f (Split-Path $f -Leaf), $sig.Status, $who, $stamp)
+            if (-not $sig.SignerCertificate) { Write-Host "::error::Signature absente : $f"; $bad++ }
+            elseif ($sig.Status -eq "HashMismatch") { Write-Host "::error::Fichier modifie apres signature : $f"; $bad++ }
           }
-          if ($missing -gt 0) { throw "Signature absente sur $missing fichier(s)" }
+          if ($bad -gt 0) { throw "Verification de signature echouee ($bad probleme(s))" }
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -131,7 +149,7 @@ jobs:
             gh release upload $tag $files --clobber
             gh release edit $tag --draft=false --title "Lyra $tag"
           } else {
-            Write-Host "Création de la release $tag."
+            Write-Host "Creation de la release $tag."
             gh release create $tag $files --generate-notes --title "Lyra $tag"
           }
           if ($LASTEXITCODE -ne 0) { exit 1 }

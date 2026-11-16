@@ -32,6 +32,9 @@ var PATHS = {
   refresh: '<path d="M19.2 12a7.2 7.2 0 1 1-2.2-5.2"/><path d="M19.4 4.6v4.2h-4.2"/>',
   plus: '<path d="M12 5.2v13.6"/><path d="M5.2 12h13.6"/>',
   queue: '<path d="M4 7h10.5"/><path d="M4 12h10.5"/><path d="M4 17h6.5"/><path d="M15.4 13.3 20 16.1l-4.6 2.8z" fill="currentColor" stroke="none"/>',
+  disc: '<circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="2.1"/>',
+  mic: '<rect x="9.2" y="3" width="5.6" height="9.9" rx="2.8"/><path d="M6.4 10.6a5.6 5.6 0 0 0 11.2 0"/><path d="M12 16.2V20"/><path d="M9.3 20.6h5.4"/>',
+  playlist: '<path d="M4 6.6h9.4"/><path d="M4 11.6h9.4"/><path d="M4 16.6h6.4"/><path d="M15.6 13.5 20 16.3l-4.4 2.8z" fill="currentColor" stroke="none"/>',
   note: '<path d="M9 17.6V6.3l9.5-1.9v11.1"/><circle cx="6.6" cy="17.7" r="2.4"/><circle cx="16.1" cy="15.6" r="2.4"/>'
 };
 
